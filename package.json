@@ -1,0 +1,22 @@
+{
+  "name": "kanji-sheets",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Generate printable Japanese kanji practice sheets (genkouyoushi) for the 2,136 Jōyō kanji, with a live PDF preview.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:data": "node scripts/build-data.mjs"
+  },
+  "dependencies": {
+    "jspdf": "^2.5.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
+  }
+}

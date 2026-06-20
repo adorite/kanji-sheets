@@ -79,6 +79,14 @@
 .setinfo { font-size: 12.5px; color: var(--muted); }
 .setinfo strong { color: var(--ink); }
 
+.shuffle {
+  align-self: flex-end;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line-strong); border-radius: 8px;
+  padding: 7px 13px; font-size: 13px; white-space: nowrap;
+}
+.shuffle:hover { border-color: var(--accent); color: var(--accent-ink); }
+
 .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink); cursor: pointer; }
 .check input { width: auto; accent-color: var(--accent); }
 

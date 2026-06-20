@@ -90,8 +90,12 @@ export async function buildSheet(opts) {
     font = 'handwriting', guides = 'grid', diagonals = false,
     showLabel = true, markGroups = true, pageFormat = 'a4',
     title = 'Kanji practice', blankPages = 2, onePage = false,
+    answerKey = true,
   } = opts
   const repeats = Math.max(0, boxes - 1)
+  // Test mode: a recall quiz — the meaning is the prompt, the boxes are left empty
+  // (no model glyph) for the learner to write the kanji from memory.
+  const test = mode === 'test'
 
   const { default: jsPDF } = await import('jspdf')
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: FORMATS[pageFormat] || 'a4' })
@@ -167,10 +171,32 @@ export async function buildSheet(opts) {
       const bx = startX + (i % cols) * boxMm
       const by = gy + Math.floor(i / cols) * (boxMm + GUTTER_ROW)
       drawBox(doc, bx, by, boxMm, { guides, diagonals })
+      if (test) continue                                       // empty boxes — write from memory
       if (i === 0) drawGlyph(doc, run.k, bx, by, boxMm, 20)
       else if (i - 1 < traceCount) drawGlyph(doc, run.k, bx, by, boxMm, 198)
     }
     y = gy + rowsForRun * boxMm + (rowsForRun - 1) * GUTTER_ROW + GUTTER_ROW
+  }
+
+  // ── Answer key (test mode) ──
+  if (test && answerKey && runs.length) {
+    doc.addPage(); header()
+    let ay = top
+    doc.setFontSize(11); doc.setTextColor(70)
+    doc.text('Answer key', MARGIN_X, ay + 4); ay += 9
+    const keyCols = 4
+    const colW = (W - MARGIN_X * 2) / keyCols
+    const lineH = 7
+    runs.forEach((run, idx) => {
+      const col = idx % keyCols
+      if (col === 0 && ay + lineH > bottom) { doc.addPage(); header(); ay = top }
+      const x = MARGIN_X + col * colW
+      doc.setFontSize(8); doc.setTextColor(150)
+      doc.text(`${idx + 1}.`, x, ay + 4)
+      doc.setFontSize(13); doc.setTextColor(20)
+      doc.text(run.k, x + 7, ay + 5)
+      if (col === keyCols - 1) ay += lineH
+    })
   }
   return doc
 }

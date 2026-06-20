@@ -20,6 +20,22 @@ const PAGES = [
   { v: 'scribe', label: 'Kindle Scribe' },
 ]
 
+// Tiny seeded PRNG + shuffle so a "random" test is stable until you reshuffle.
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+function sampleKanji(arr, n, seed) {
+  const r = mulberry32(seed || 1)
+  const a = arr.slice()
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1));[a[i], a[j]] = [a[j], a[i]] }
+  return a.slice(0, Math.min(n, a.length))
+}
+
 export default function App() {
   const [mode, setMode] = useState('practice')   // 'practice' | 'blank'
   const [source, setSource] = useState('grade')  // 'grade' | 'jlpt' | 'custom'
@@ -40,6 +56,10 @@ export default function App() {
   const [markGrade, setMarkGrade] = useState(true)
   const [pageFormat, setPageFormat] = useState('a4')
   const [blankPages, setBlankPages] = useState(2)
+  // Test mode
+  const [count, setCount] = useState(20)
+  const [answerKey, setAnswerKey] = useState(true)
+  const [seed, setSeed] = useState(() => (Math.random() * 1e9) | 0)
 
   const [url, setUrl] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -59,23 +79,32 @@ export default function App() {
   }, [selected])
 
   const sliced = selected.slice(Math.max(0, from - 1), to).slice(0, MAX_RUN)
-  const runs = sliced.map((k) => ({
-    k: k.c,
-    label: showMeaning ? (k.m?.[0] || '') : '',
-    group: markGrade && k.g != null ? gradeName(k.g) : null,
-  }))
+  const testSample = useMemo(
+    () => (mode === 'test' ? sampleKanji(selected, count, seed) : []),
+    [mode, selected, count, seed])
 
+  const runs = mode === 'test'
+    ? testSample.map((k, idx) => ({ k: k.c, label: `${idx + 1}.  ${k.m?.[0] || ''}`, group: null }))
+    : sliced.map((k) => ({
+        k: k.c,
+        label: showMeaning ? (k.m?.[0] || '') : '',
+        group: markGrade && k.g != null ? gradeName(k.g) : null,
+      }))
+
+  const setName = source === 'grade' ? (grade === 'all' ? 'all grades' : gradeName(grade))
+    : source === 'jlpt' ? `JLPT N${jlpt}` : 'custom set'
   const opts = (onePage) => ({
-    mode, runs, boxes, traceCount: Math.min(traceCount, boxes - 1), boxMm, font,
-    guides, diagonals, showLabel: showMeaning, markGroups: markGrade, pageFormat, blankPages, onePage,
+    mode, runs, boxes, traceCount: Math.min(traceCount, boxes - 1), boxMm, font, guides, diagonals,
+    showLabel: mode === 'test' ? true : showMeaning,
+    markGroups: mode === 'test' ? false : markGrade,
+    answerKey, pageFormat, blankPages, onePage,
     title: mode === 'blank' ? 'Kanji practice — genkouyoushi'
-      : source === 'grade' ? `Jōyō kanji — ${grade === 'all' ? 'all grades' : gradeName(grade)}`
-      : source === 'jlpt' ? `Jōyō kanji — JLPT N${jlpt}` : 'Kanji practice',
+      : `${mode === 'test' ? 'Kanji test' : 'Jōyō kanji'} — ${setName}`,
   })
 
   // Debounced live preview (full document — all pages are scrollable in the frame).
   useEffect(() => {
-    if (mode === 'practice' && runs.length === 0) { setUrl(null); return }
+    if (mode !== 'blank' && runs.length === 0) { setUrl(null); return }
     let cancelled = false
     setBusy(true)
     const t = setTimeout(async () => {
@@ -91,14 +120,14 @@ export default function App() {
     }, 350)
     return () => { cancelled = true; clearTimeout(t) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, source, grade, jlpt, custom, from, to, boxes, traceCount, font, boxMm, guides, diagonals, showMeaning, markGrade, pageFormat, blankPages, selected.length])
+  }, [mode, source, grade, jlpt, custom, from, to, count, seed, answerKey, boxes, traceCount, font, boxMm, guides, diagonals, showMeaning, markGrade, pageFormat, blankPages, selected.length])
 
   useEffect(() => () => { if (urlRef.current) URL.revokeObjectURL(urlRef.current) }, [])
 
   const download = async () => {
     const doc = await buildSheet(opts(false))
     const tag = mode === 'blank' ? 'blank'
-      : source === 'grade' ? `grade-${grade}` : source === 'jlpt' ? `jlpt-n${jlpt}` : 'custom'
+      : `${mode === 'test' ? 'test' : ''}${source === 'grade' ? `grade-${grade}` : source === 'jlpt' ? `jlpt-n${jlpt}` : 'custom'}`
     doc.save(`kanji-sheet-${tag}.pdf`)
   }
 
@@ -127,10 +156,11 @@ export default function App() {
         <section className="panel">
           <div className="seg">
             <button className={mode === 'practice' ? 'on' : ''} onClick={() => setMode('practice')}>Practice</button>
+            <button className={mode === 'test' ? 'on' : ''} onClick={() => setMode('test')}>Test</button>
             <button className={mode === 'blank' ? 'on' : ''} onClick={() => setMode('blank')}>Blank</button>
           </div>
 
-          {mode === 'practice' && (
+          {mode !== 'blank' && (
             <>
               <div className="seg seg-sub">
                 <button className={source === 'grade' ? 'on' : ''} onClick={() => setSource('grade')}>By grade</button>
@@ -160,40 +190,68 @@ export default function App() {
                   onChange={(e) => setCustom(e.target.value)} placeholder="Type or paste kanji, e.g. 日本語学校" />
               )}
 
-              <div className="setinfo">
-                <strong>{selected.length.toLocaleString()}</strong> kanji in set
-                {selected.length > 0 && <> · showing {from}–{Math.min(to, selected.length)}</>}
-              </div>
-              {selected.length > 1 && (
-                <div className="row">
-                  <label className="field-l"><span>From</span>
-                    <input type="number" min="1" max={selected.length} value={from} onChange={num(setFrom, { min: 1, max: selected.length })} />
-                  </label>
-                  <label className="field-l"><span>To</span>
-                    <input type="number" min="1" max={selected.length} value={to} onChange={num(setTo, { min: 1, max: selected.length })} />
-                  </label>
-                </div>
+              {mode === 'practice' ? (
+                <>
+                  <div className="setinfo">
+                    <strong>{selected.length.toLocaleString()}</strong> kanji in set
+                    {selected.length > 0 && <> · showing {from}–{Math.min(to, selected.length)}</>}
+                  </div>
+                  {selected.length > 1 && (
+                    <div className="row">
+                      <label className="field-l"><span>From</span>
+                        <input type="number" min="1" max={selected.length} value={from} onChange={num(setFrom, { min: 1, max: selected.length })} />
+                      </label>
+                      <label className="field-l"><span>To</span>
+                        <input type="number" min="1" max={selected.length} value={to} onChange={num(setTo, { min: 1, max: selected.length })} />
+                      </label>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="setinfo">
+                    <strong>{selected.length.toLocaleString()}</strong> kanji in set · testing <strong>{runs.length}</strong> at random
+                  </div>
+                  <div className="row">
+                    <label className="field-l"><span>Questions</span>
+                      <input type="number" min="1" max={Math.min(selected.length || 500, MAX_RUN)} value={count} onChange={num(setCount, { min: 1, max: MAX_RUN })} />
+                    </label>
+                    <button className="shuffle" type="button" onClick={() => setSeed((Math.random() * 1e9) | 0)}>🎲 Shuffle</button>
+                  </div>
+                </>
               )}
 
               <hr className="rule" />
 
-              <div className="row">
-                <label className="field-l"><span>Boxes / kanji</span>
-                  <input type="number" min="2" max="30" value={boxes} onChange={num(setBoxes, { min: 2, max: 30 })} />
+              {mode === 'practice' ? (
+                <div className="row">
+                  <label className="field-l"><span>Boxes / kanji</span>
+                    <input type="number" min="2" max="30" value={boxes} onChange={num(setBoxes, { min: 2, max: 30 })} />
+                  </label>
+                  <label className="field-l"><span>Tracing guides</span>
+                    <input type="number" min="0" max={boxes - 1} value={traceCount} onChange={num(setTraceCount, { min: 0, max: 30 })} />
+                  </label>
+                </div>
+              ) : (
+                <label className="field-l"><span>Boxes to write each answer</span>
+                  <input type="number" min="1" max="20" value={boxes} onChange={num(setBoxes, { min: 1, max: 20 })} />
                 </label>
-                <label className="field-l"><span>Tracing guides</span>
-                  <input type="number" min="0" max={boxes - 1} value={traceCount} onChange={num(setTraceCount, { min: 0, max: 30 })} />
-                </label>
-              </div>
+              )}
 
-              <label className="field-l"><span>Model font</span>
+              <label className="field-l"><span>{mode === 'test' ? 'Answer-key font' : 'Model font'}</span>
                 <select value={font} onChange={(e) => setFont(e.target.value)}>
                   {FONTS.map((f) => <option key={f.v} value={f.v}>{f.label}</option>)}
                 </select>
               </label>
 
-              <label className="check"><input type="checkbox" checked={showMeaning} onChange={(e) => setShowMeaning(e.target.checked)} /> Show meaning above each kanji</label>
-              <label className="check"><input type="checkbox" checked={markGrade} onChange={(e) => setMarkGrade(e.target.checked)} /> Mark where a new grade starts</label>
+              {mode === 'practice' ? (
+                <>
+                  <label className="check"><input type="checkbox" checked={showMeaning} onChange={(e) => setShowMeaning(e.target.checked)} /> Show meaning above each kanji</label>
+                  <label className="check"><input type="checkbox" checked={markGrade} onChange={(e) => setMarkGrade(e.target.checked)} /> Mark where a new grade starts</label>
+                </>
+              ) : (
+                <label className="check"><input type="checkbox" checked={answerKey} onChange={(e) => setAnswerKey(e.target.checked)} /> Include answer key (last page)</label>
+              )}
             </>
           )}
 

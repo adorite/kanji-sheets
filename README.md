@@ -22,6 +22,7 @@ It’s a single-page React app with **no server**. The PDF is generated client-s
 
 - 📚 **All 2,136 Jōyō kanji**, in a sensible learning order — by official MEXT school grade (1–6, then secondary), then by corpus frequency.
 - 🎚️ **Select by grade, JLPT level, or just type the kanji you want.** Slice any range out of a set.
+- 🎲 **Random test mode** — quiz yourself: a random sample of the set with the English meaning as the prompt and empty boxes to write the kanji from memory, plus an answer key on the last page. Reshuffle for a fresh test.
 - ✍️ **Model fonts that actually look handwritten** — Klee (kaisho handwriting, the default), Yuji Syuku (brush), and a clean gothic — so the character you copy looks like good handwriting, not a screen font.
 - 🔢 **Tune everything**: boxes per kanji, number of faint tracing guides, square size, guide lines (full sub-grid, centre cross, or plain), and page size (A4 / US Letter / Kindle Scribe).
 - 🏷️ **Context on the page**: each kanji’s English meaning above its row, and a divider marking where a new grade begins.

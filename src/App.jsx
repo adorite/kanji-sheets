@@ -78,10 +78,20 @@ export default function App() {
     setTo(Math.min(selected.length || DEFAULT_SHOW, DEFAULT_SHOW))
   }, [selected])
 
-  const sliced = selected.slice(Math.max(0, from - 1), to).slice(0, MAX_RUN)
+  // Coerce the (possibly empty / partial) field values into safe numbers for the
+  // generator, independent of what's shown in the inputs while the user types.
+  const int = (v, d) => { const n = parseInt(v, 10); return Number.isFinite(n) ? n : d }
+  const vBoxes = Math.max(1, int(boxes, 8))
+  const vTrace = Math.max(0, Math.min(int(traceCount, 0), vBoxes - 1))
+  const vFrom = Math.max(1, int(from, 1))
+  const vTo = Math.max(vFrom, int(to, vFrom))
+  const vCount = Math.max(1, int(count, 20))
+  const vPages = Math.max(1, int(blankPages, 2))
+
+  const sliced = selected.slice(vFrom - 1, vTo).slice(0, MAX_RUN)
   const testSample = useMemo(
-    () => (mode === 'test' ? sampleKanji(selected, count, seed) : []),
-    [mode, selected, count, seed])
+    () => (mode === 'test' ? sampleKanji(selected, vCount, seed) : []),
+    [mode, selected, vCount, seed])
 
   const runs = mode === 'test'
     ? testSample.map((k, idx) => ({ k: k.c, label: `${idx + 1}.  ${k.m?.[0] || ''}`, group: null }))
@@ -94,10 +104,10 @@ export default function App() {
   const setName = source === 'grade' ? (grade === 'all' ? 'all grades' : gradeName(grade))
     : source === 'jlpt' ? `JLPT N${jlpt}` : 'custom set'
   const opts = (onePage) => ({
-    mode, runs, boxes, traceCount: Math.min(traceCount, boxes - 1), boxMm, font, guides, diagonals,
+    mode, runs, boxes: vBoxes, traceCount: vTrace, boxMm, font, guides, diagonals,
     showLabel: mode === 'test' ? true : showMeaning,
     markGroups: mode === 'test' ? false : markGrade,
-    answerKey, pageFormat, blankPages, onePage,
+    answerKey, pageFormat, blankPages: vPages, onePage,
     title: mode === 'blank' ? 'Kanji practice — genkouyoushi'
       : `${mode === 'test' ? 'Kanji test' : 'Jōyō kanji'} — ${setName}`,
   })
@@ -131,10 +141,23 @@ export default function App() {
     doc.save(`kanji-sheet-${tag}.pdf`)
   }
 
-  const num = (set, { min = 0, max = 99 } = {}) => (e) => {
-    const n = parseInt(e.target.value, 10)
-    set(Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : '')
-  }
+  // Number-field handler. Crucially it does NOT enforce the minimum while typing
+  // (otherwise "16" snaps to "26" as you pass through "1"); it only caps the max
+  // and allows an empty field, then snaps into [min, max] on blur. Consumers use
+  // the coerced v* values above so a transient empty/partial value never breaks
+  // generation.
+  const num = (set, { min = 0, max = 99 } = {}) => ({
+    onChange: (e) => {
+      const v = e.target.value
+      if (v === '') return set('')
+      const n = parseInt(v, 10)
+      if (Number.isFinite(n)) set(Math.min(max, n))
+    },
+    onBlur: (e) => {
+      const n = parseInt(e.target.value, 10)
+      set(Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : min)
+    },
+  })
 
   const canDownload = mode === 'blank' || runs.length > 0
 
@@ -194,15 +217,15 @@ export default function App() {
                 <>
                   <div className="setinfo">
                     <strong>{selected.length.toLocaleString()}</strong> kanji in set
-                    {selected.length > 0 && <> · showing {from}–{Math.min(to, selected.length)}</>}
+                    {selected.length > 0 && <> · showing {vFrom}–{Math.min(vTo, selected.length)}</>}
                   </div>
                   {selected.length > 1 && (
                     <div className="row">
                       <label className="field-l"><span>From</span>
-                        <input type="number" min="1" max={selected.length} value={from} onChange={num(setFrom, { min: 1, max: selected.length })} />
+                        <input type="number" min="1" max={selected.length} value={from} {...num(setFrom, { min: 1, max: selected.length })} />
                       </label>
                       <label className="field-l"><span>To</span>
-                        <input type="number" min="1" max={selected.length} value={to} onChange={num(setTo, { min: 1, max: selected.length })} />
+                        <input type="number" min="1" max={selected.length} value={to} {...num(setTo, { min: 1, max: selected.length })} />
                       </label>
                     </div>
                   )}
@@ -214,7 +237,7 @@ export default function App() {
                   </div>
                   <div className="row">
                     <label className="field-l"><span>Questions</span>
-                      <input type="number" min="1" max={Math.min(selected.length || 500, MAX_RUN)} value={count} onChange={num(setCount, { min: 1, max: MAX_RUN })} />
+                      <input type="number" min="1" max={Math.min(selected.length || 500, MAX_RUN)} value={count} {...num(setCount, { min: 1, max: MAX_RUN })} />
                     </label>
                     <button className="shuffle" type="button" onClick={() => setSeed((Math.random() * 1e9) | 0)}>🎲 Shuffle</button>
                   </div>
@@ -226,15 +249,15 @@ export default function App() {
               {mode === 'practice' ? (
                 <div className="row">
                   <label className="field-l"><span>Boxes / kanji</span>
-                    <input type="number" min="2" max="30" value={boxes} onChange={num(setBoxes, { min: 2, max: 30 })} />
+                    <input type="number" min="2" max="30" value={boxes} {...num(setBoxes, { min: 2, max: 30 })} />
                   </label>
                   <label className="field-l"><span>Tracing guides</span>
-                    <input type="number" min="0" max={boxes - 1} value={traceCount} onChange={num(setTraceCount, { min: 0, max: 30 })} />
+                    <input type="number" min="0" max={vBoxes - 1} value={traceCount} {...num(setTraceCount, { min: 0, max: 30 })} />
                   </label>
                 </div>
               ) : (
                 <label className="field-l"><span>Boxes to write each answer</span>
-                  <input type="number" min="1" max="20" value={boxes} onChange={num(setBoxes, { min: 1, max: 20 })} />
+                  <input type="number" min="1" max="20" value={boxes} {...num(setBoxes, { min: 1, max: 20 })} />
                 </label>
               )}
 
@@ -257,7 +280,7 @@ export default function App() {
 
           {mode === 'blank' && (
             <label className="field-l"><span>Pages</span>
-              <input type="number" min="1" max="50" value={blankPages} onChange={num(setBlankPages, { min: 1, max: 50 })} />
+              <input type="number" min="1" max="50" value={blankPages} {...num(setBlankPages, { min: 1, max: 50 })} />
             </label>
           )}
 

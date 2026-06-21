@@ -121,6 +121,15 @@ export default function App() {
   // Прописи has no Test mode — fall back to Practice when leaving kanji.
   useEffect(() => { if (!isJp && mode === 'test') setMode('practice') }, [isJp, mode])
 
+  // Keep the browser tab title in sync with the chosen language.
+  useEffect(() => {
+    document.title = isJp
+      ? 'Kanji Sheets · printable Jōyō practice grids'
+      : lang === 'ru'
+        ? 'Прописи · Russian handwriting practice sheets'
+        : 'Handwriting Sheets · English practice lines'
+  }, [isJp, lang])
+
   // Practice items for прописи: alphabet preset or the user's own text.
   const propisiItems = useMemo(() => {
     if (isJp) return []

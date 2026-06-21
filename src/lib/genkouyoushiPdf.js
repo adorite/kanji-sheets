@@ -30,9 +30,11 @@ const HEADER = [89, 89, 89]
 
 // Model-glyph fonts (all OFL, subset to the Jōyō kanji + kana + ASCII).
 export const FONTS = [
-  { v: 'handwriting', label: 'Handwriting (Klee)', file: 'KleeOne-Regular.ttf' },
+  { v: 'handwriting', label: 'Handwriting (Klee One)', file: 'KleeOne-Regular.ttf' },
   { v: 'brush', label: 'Brush (Yuji Syuku)', file: 'YujiSyuku-Regular.ttf' },
   { v: 'gothic', label: 'Gothic (Zen Kaku)', file: 'ZenKakuGothicNew-Regular.ttf' },
+  { v: 'mincho', label: 'Mincho / serif (Shippori)', file: 'ShipporiMincho-Regular.ttf' },
+  { v: 'maru', label: 'Rounded (Zen Maru)', file: 'ZenMaruGothic-Regular.ttf' },
 ]
 const FONT_FILE = Object.fromEntries(FONTS.map((f) => [f.v, f.file]))
 
@@ -90,7 +92,10 @@ export async function buildSheet(opts) {
     font = 'handwriting', guides = 'grid', diagonals = false,
     showLabel = true, markGroups = true, pageFormat = 'a4',
     title = 'Kanji practice', blankPages = 2, onePage = false,
-    answerKey = true,
+    // Test-mode answer key. 'none' | 'list' | 'faded' | 'revealed' | 'fadedRevealed'
+    // 'faded'/'revealed' re-print the test grid in the same order/positions with
+    // faint-trace / full kanji; 'fadedRevealed' does both (faded page, then full).
+    answerStyle = 'fadedRevealed',
   } = opts
   const repeats = Math.max(0, boxes - 1)
   // Test mode: a recall quiz — the meaning is the prompt, the boxes are left empty
@@ -137,49 +142,114 @@ export async function buildSheet(opts) {
     return doc
   }
 
-  // ── practice ──
-  header()
+  // ── practice layout ──
+  // Renders `runs` as stacked rows: a dark model glyph in the first box, faint
+  // tracing in the next `traceCount`, then empty practice boxes.
   const labelH = showLabel ? 4.5 : 0
   const GROUP_H = 7
-  let y = top
-  let prevGroup
-  for (const run of runs) {
-    const groupText = markGroups && run.group != null && run.group !== prevGroup ? run.group : null
-    const cells = 1 + repeats
-    const rowsForRun = Math.ceil(cells / cols)
-    const runH = (groupText ? GROUP_H : 0) + (run.label && showLabel ? labelH : 0)
-      + rowsForRun * boxMm + (rowsForRun - 1) * GUTTER_ROW
-    if (y + runH > bottom) { if (onePage) break; doc.addPage(); header(); y = top }
-    prevGroup = run.group
+  const layoutRuns = () => {
+    header()
+    let y = top
+    let prevGroup
+    for (const run of runs) {
+      const groupText = markGroups && run.group != null && run.group !== prevGroup ? run.group : null
+      const cells = 1 + repeats
+      const rowsForRun = Math.ceil(cells / cols)
+      const runH = (groupText ? GROUP_H : 0) + (run.label && showLabel ? labelH : 0)
+        + rowsForRun * boxMm + (rowsForRun - 1) * GUTTER_ROW
+      if (y + runH > bottom) { if (onePage) break; doc.addPage(); header(); y = top }
+      prevGroup = run.group
 
-    if (groupText) {
-      doc.setFontSize(9.5); doc.setTextColor(70)
-      doc.text(groupText, startX, y + 4.4)
-      const tw = doc.getTextWidth(groupText)
-      doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.2); doc.setLineDashPattern([], 0)
-      doc.line(startX + tw + 3, y + 3.2, startX + cols * boxMm, y + 3.2)
-      y += GROUP_H
-    }
+      if (groupText) {
+        doc.setFontSize(9.5); doc.setTextColor(70)
+        doc.text(groupText, startX, y + 4.4)
+        const tw = doc.getTextWidth(groupText)
+        doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.2); doc.setLineDashPattern([], 0)
+        doc.line(startX + tw + 3, y + 3.2, startX + cols * boxMm, y + 3.2)
+        y += GROUP_H
+      }
 
-    let gy = y
-    if (showLabel && run.label) {
-      doc.setFontSize(8); doc.setTextColor(120)
-      doc.text(run.label, startX, y + labelH - 1)
-      gy = y + labelH
+      let gy = y
+      if (showLabel && run.label) {
+        doc.setFontSize(8); doc.setTextColor(120)
+        doc.text(run.label, startX, y + labelH - 1)
+        gy = y + labelH
+      }
+      for (let i = 0; i < cells; i++) {
+        const bx = startX + (i % cols) * boxMm
+        const by = gy + Math.floor(i / cols) * (boxMm + GUTTER_ROW)
+        drawBox(doc, bx, by, boxMm, { guides, diagonals })
+        if (i === 0) drawGlyph(doc, run.k, bx, by, boxMm, 20)
+        else if (i - 1 < traceCount) drawGlyph(doc, run.k, bx, by, boxMm, 198)
+      }
+      y = gy + rowsForRun * boxMm + (rowsForRun - 1) * GUTTER_ROW + GUTTER_ROW
     }
-    for (let i = 0; i < cells; i++) {
-      const bx = startX + (i % cols) * boxMm
-      const by = gy + Math.floor(i / cols) * (boxMm + GUTTER_ROW)
-      drawBox(doc, bx, by, boxMm, { guides, diagonals })
-      if (test) continue                                       // empty boxes — write from memory
-      if (i === 0) drawGlyph(doc, run.k, bx, by, boxMm, 20)
-      else if (i - 1 < traceCount) drawGlyph(doc, run.k, bx, by, boxMm, 198)
-    }
-    y = gy + rowsForRun * boxMm + (rowsForRun - 1) * GUTTER_ROW + GUTTER_ROW
   }
 
-  // ── Answer key (test mode) ──
-  if (test && answerKey && runs.length) {
+  if (!test) { layoutRuns(); return doc }
+
+  // ── test: a packed worksheet grid (one box per kanji, keyword above), like
+  // language-app — not one-kanji-per-row. The answer key re-prints the SAME grid
+  // in identical positions, faded (faint trace) and/or revealed (full kanji), so
+  // you self-test on paper and flip to check. glyphMode: 'none'|'faint'|'full'.
+  const KW_H = 4.5      // keyword strip above each box
+  const ROW_GAP = 6     // mm between rows
+  const GROUP_GAP = 9   // mm for a grade heading + rule
+  const fitLabel = (text, maxW) => {
+    for (let size = 7.5; size >= 5; size -= 0.5) {
+      doc.setFontSize(size)
+      if (doc.getTextWidth(text) <= maxW) return text
+    }
+    doc.setFontSize(5)
+    let t = text
+    while (t.length > 1 && doc.getTextWidth(t + '…') > maxW) t = t.slice(0, -1)
+    return t + '…'
+  }
+  const testGrid = (glyphMode) => {
+    header()
+    const cellH = KW_H + boxMm
+    let col = 0, y = top, prevGroup
+    for (const run of runs) {
+      const groupText = markGroups && run.group != null && run.group !== prevGroup ? run.group : null
+      if (groupText) {
+        if (col !== 0) { col = 0; y += cellH + ROW_GAP }
+        if (y + GROUP_GAP > bottom) { doc.addPage(); header(); y = top }
+        doc.setFontSize(9); doc.setTextColor(70)
+        doc.text(groupText, startX, y + 4.2)
+        const tw = doc.getTextWidth(groupText)
+        doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.2); doc.setLineDashPattern([], 0)
+        doc.line(startX + tw + 3, y + 3, startX + cols * boxMm, y + 3)
+        y += GROUP_GAP
+        prevGroup = run.group
+      }
+      if (y + cellH > bottom) { doc.addPage(); header(); y = top; col = 0 }
+      const bx = startX + col * boxMm
+      if (run.label) {
+        doc.setTextColor(120)
+        const text = fitLabel(run.label, boxMm - 1.2)
+        doc.text(text, bx + boxMm / 2, y + KW_H - 1.5, { align: 'center' })
+      }
+      const by = y + KW_H
+      drawBox(doc, bx, by, boxMm, { guides, diagonals })
+      if (glyphMode === 'full') drawGlyph(doc, run.k, bx, by, boxMm, 20)
+      else if (glyphMode === 'faint') drawGlyph(doc, run.k, bx, by, boxMm, 198)
+      col += 1
+      if (col >= cols) { col = 0; y += cellH + ROW_GAP }
+    }
+  }
+
+  testGrid('none')
+  if (onePage) return doc // live preview only needs the first test page
+
+  if (runs.length && (answerStyle === 'faded' || answerStyle === 'fadedRevealed')) {
+    doc.addPage(); testGrid('faint')
+  }
+  if (runs.length && (answerStyle === 'revealed' || answerStyle === 'fadedRevealed')) {
+    doc.addPage(); testGrid('full')
+  }
+
+  // Compact numbered list answer key.
+  if (runs.length && answerStyle === 'list') {
     doc.addPage(); header()
     let ay = top
     doc.setFontSize(11); doc.setTextColor(70)

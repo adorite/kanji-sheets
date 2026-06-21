@@ -1,3 +1,10 @@
+/* Model-glyph fonts, also used for the on-screen "compare fonts" strip. */
+@font-face { font-family: 'KanjiKlee';   src: url('/fonts/KleeOne-Regular.ttf'); font-display: swap; }
+@font-face { font-family: 'KanjiYuji';   src: url('/fonts/YujiSyuku-Regular.ttf'); font-display: swap; }
+@font-face { font-family: 'KanjiZen';    src: url('/fonts/ZenKakuGothicNew-Regular.ttf'); font-display: swap; }
+@font-face { font-family: 'KanjiShippori'; src: url('/fonts/ShipporiMincho-Regular.ttf'); font-display: swap; }
+@font-face { font-family: 'KanjiMaru';   src: url('/fonts/ZenMaruGothic-Regular.ttf'); font-display: swap; }
+
 .page {
   max-width: 1140px;
   margin: 0 auto;
@@ -6,6 +13,16 @@
   display: flex;
   flex-direction: column;
 }
+
+/* ── Font comparison strip ── */
+.fontcompare {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;
+  padding: 12px; background: var(--surface); border: 1px solid var(--line, #e7e3da);
+  border-radius: 12px; box-shadow: var(--shadow);
+}
+.fontcompare .fc-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 72px; }
+.fontcompare .fc-glyph { font-size: 52px; line-height: 1.1; color: var(--ink); }
+.fontcompare .fc-name { font-size: 11px; color: var(--muted); }
 
 /* ── Masthead ── */
 .masthead {
@@ -61,6 +78,9 @@
 }
 .seg button.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
 .seg-sub button { font-size: 12.5px; }
+.seg-lang { margin-bottom: 10px; }
+.seg-lang button { font-size: 13.5px; font-weight: 600; }
+.seg-lang button.on { color: var(--accent, var(--ink)); }
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chips button {

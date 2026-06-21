@@ -1,8 +1,10 @@
 /* Model-glyph fonts, also used for the on-screen "compare fonts" strip. */
 @font-face { font-family: 'KanjiKlee';   src: url('/fonts/KleeOne-Regular.ttf'); font-display: swap; }
 @font-face { font-family: 'KanjiYuji';   src: url('/fonts/YujiSyuku-Regular.ttf'); font-display: swap; }
+@font-face { font-family: 'KanjiYujiBoku'; src: url('/fonts/YujiBoku-Regular.ttf'); font-display: swap; }
 @font-face { font-family: 'KanjiZen';    src: url('/fonts/ZenKakuGothicNew-Regular.ttf'); font-display: swap; }
 @font-face { font-family: 'KanjiShippori'; src: url('/fonts/ShipporiMincho-Regular.ttf'); font-display: swap; }
+@font-face { font-family: 'KanjiBIZ';    src: url('/fonts/BIZUDMincho-Regular.ttf'); font-display: swap; }
 @font-face { font-family: 'KanjiMaru';   src: url('/fonts/ZenMaruGothic-Regular.ttf'); font-display: swap; }
 
 .page {

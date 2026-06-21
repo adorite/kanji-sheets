@@ -32,8 +32,10 @@ const HEADER = [89, 89, 89]
 export const FONTS = [
   { v: 'handwriting', label: 'Handwriting (Klee One)', file: 'KleeOne-Regular.ttf' },
   { v: 'brush', label: 'Brush (Yuji Syuku)', file: 'YujiSyuku-Regular.ttf' },
+  { v: 'brushbold', label: 'Brush bold (Yuji Boku)', file: 'YujiBoku-Regular.ttf' },
   { v: 'gothic', label: 'Gothic (Zen Kaku)', file: 'ZenKakuGothicNew-Regular.ttf' },
   { v: 'mincho', label: 'Mincho / serif (Shippori)', file: 'ShipporiMincho-Regular.ttf' },
+  { v: 'textbook', label: 'Textbook mincho (BIZ UD)', file: 'BIZUDMincho-Regular.ttf' },
   { v: 'maru', label: 'Rounded (Zen Maru)', file: 'ZenMaruGothic-Regular.ttf' },
 ]
 const FONT_FILE = Object.fromEntries(FONTS.map((f) => [f.v, f.file]))

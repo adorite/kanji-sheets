@@ -27,16 +27,24 @@ const HEADER = [89, 89, 89]
 const MODEL_DARK = 20           // first exemplar glyph
 const MODEL_FAINT = 198         // trace copies
 
-// Letter styles that cover Latin *and* Cyrillic (all OFL). Курсив/calligraphic
-// options first, then печатные (print) and casual.
+// Letter styles (all OFL/Apache, free). `langs` marks which languages a font
+// can render: the calligraphic/print set covers Latin *and* Cyrillic, while the
+// extra English scripts are Latin-only, so they're offered for English alone.
 export const PROPISI_FONTS = [
-  { v: 'calligraphy', label: 'Каллиграфия · Calligraphy (Pacifico)', file: 'Pacifico-Regular.ttf' },
-  { v: 'handwritten', label: 'Рукописный · Handwritten (Bad Script)', file: 'BadScript-Regular.ttf' },
-  { v: 'cursive', label: 'Курсив · Cursive (Marck Script)', file: 'MarckScript-Regular.ttf' },
-  { v: 'bold', label: 'Жирный курсив · Bold script (Lobster)', file: 'Lobster-Regular.ttf' },
-  { v: 'print', label: 'Печатные · Print (Pangolin)', file: 'Pangolin-Regular.ttf' },
-  { v: 'casual', label: 'Casual (Caveat)', file: 'Caveat-Regular.ttf' },
+  { v: 'calligraphy', label: 'Каллиграфия · Calligraphy (Pacifico)', file: 'Pacifico-Regular.ttf', langs: ['ru', 'en'] },
+  { v: 'handwritten', label: 'Рукописный · Handwritten (Bad Script)', file: 'BadScript-Regular.ttf', langs: ['ru', 'en'] },
+  { v: 'cursive', label: 'Курсив · Cursive (Marck Script)', file: 'MarckScript-Regular.ttf', langs: ['ru', 'en'] },
+  { v: 'bold', label: 'Жирный курсив · Bold script (Lobster)', file: 'Lobster-Regular.ttf', langs: ['ru', 'en'] },
+  { v: 'print', label: 'Печатные · Print (Pangolin)', file: 'Pangolin-Regular.ttf', langs: ['ru', 'en'] },
+  { v: 'casual', label: 'Casual (Caveat)', file: 'Caveat-Regular.ttf', langs: ['ru', 'en'] },
+  { v: 'dancing', label: 'Cursive (Dancing Script)', file: 'DancingScript-Regular.ttf', langs: ['en'] },
+  { v: 'copperplate', label: 'Calligraphy (Great Vibes)', file: 'GreatVibes-Regular.ttf', langs: ['en'] },
+  { v: 'monoline', label: 'Monoline script (Sacramento)', file: 'Sacramento-Regular.ttf', langs: ['en'] },
+  { v: 'realhand', label: 'Real handwriting (Homemade Apple)', file: 'HomemadeApple-Regular.ttf', langs: ['en'] },
 ]
+
+// The styles available for a given прописи language.
+export const propisiFontsFor = (lang) => PROPISI_FONTS.filter((f) => f.langs.includes(lang))
 const FONT_FILE = Object.fromEntries(PROPISI_FONTS.map((f) => [f.v, f.file]))
 
 async function fetchFontBase64(url) {

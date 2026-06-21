@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { buildSheet, FONTS } from './lib/genkouyoushiPdf'
-import { buildPropisi, PROPISI_FONTS } from './lib/propisiPdf'
+import { buildPropisi, propisiFontsFor } from './lib/propisiPdf'
 import { alphabetItems, textItems } from './data/alphabets'
 import {
   KANJI, GRADES, JLPT_LEVELS, gradeName, gradeNameLong,
@@ -50,8 +50,8 @@ const PRESETS = [
 ]
 // Maps a model-font value to the @font-face family used by the on-screen strip.
 const FONT_FAMILY = {
-  handwriting: 'KanjiKlee', brush: 'KanjiYuji', gothic: 'KanjiZen',
-  mincho: 'KanjiShippori', maru: 'KanjiMaru',
+  handwriting: 'KanjiKlee', brush: 'KanjiYuji', brushbold: 'KanjiYujiBoku',
+  gothic: 'KanjiZen', mincho: 'KanjiShippori', textbook: 'KanjiBIZ', maru: 'KanjiMaru',
 }
 const ANSWER_STYLES = [
   { v: 'fadedRevealed', label: 'Faded → revealed (two pages)' },
@@ -120,6 +120,13 @@ export default function App() {
 
   // Прописи has no Test mode — fall back to Practice when leaving kanji.
   useEffect(() => { if (!isJp && mode === 'test') setMode('practice') }, [isJp, mode])
+
+  // If the chosen letter style isn't available in the current language (e.g. a
+  // Latin-only English script while switching to Russian), fall back to Pacifico.
+  useEffect(() => {
+    if (isJp) return
+    if (!propisiFontsFor(lang).some((f) => f.v === pFont)) setPFont('calligraphy')
+  }, [isJp, lang, pFont])
 
   // Keep the browser tab title in sync with the chosen language.
   useEffect(() => {
@@ -319,7 +326,7 @@ export default function App() {
 
               <label className="field-l"><span>Letter style</span>
                 <select value={pFont} onChange={(e) => setPFont(e.target.value)}>
-                  {PROPISI_FONTS.map((f) => <option key={f.v} value={f.v}>{f.label}</option>)}
+                  {propisiFontsFor(lang).map((f) => <option key={f.v} value={f.v}>{f.label}</option>)}
                 </select>
               </label>
 
@@ -501,7 +508,7 @@ export default function App() {
               Free &amp; open data: the official <a href="https://en.wikipedia.org/wiki/J%C5%8Dy%C5%8D_kanji" target="_blank" rel="noreferrer">Jōyō kanji</a> list,
               with grades/strokes/readings/meanings from <a href="https://www.edrdg.org/wiki/index.php/KANJIDIC_Project" target="_blank" rel="noreferrer">KANJIDIC</a> (EDRDG),
               aggregated by <a href="https://github.com/davidluzgouveia/kanji-data" target="_blank" rel="noreferrer">davidluzgouveia/kanji-data</a> — licensed <strong>CC BY-SA 4.0</strong>.
-              Built locally via <code>scripts/build-data.mjs</code>. Fonts (all OFL): Klee One, Yuji Syuku, Zen Kaku Gothic, Shippori Mincho, Zen Maru Gothic.
+              Built locally via <code>scripts/build-data.mjs</code>. Fonts (all OFL): Klee One, Yuji Syuku, Yuji Boku, Zen Kaku Gothic, Shippori Mincho, BIZ UD Mincho, Zen Maru Gothic.
             </span>
           </>
         ) : (
@@ -510,7 +517,7 @@ export default function App() {
               {lang === 'ru' ? 'Прописи' : 'Handwriting'} · four-line ruling (ascender / x-height / baseline / descender)
               with an optional slant guide{lang === 'ru' ? ' (наклонная)' : ''} for {lang === 'ru' ? 'Cyrillic' : 'Latin'} cursive &amp; print.
             </span>
-            <span>Fonts (all OFL): Pacifico, Bad Script, Marck Script, Lobster (cursive/calligraphy), Pangolin (печатные), Caveat.</span>
+            <span>Fonts (OFL/Apache): Pacifico, Bad Script, Marck Script, Lobster, Pangolin, Caveat{lang === 'en' ? ', Dancing Script, Great Vibes, Sacramento, Homemade Apple' : ''}.</span>
           </>
         )}
       </footer>

@@ -27,12 +27,13 @@ const HEADER = [89, 89, 89]
 const MODEL_DARK = 20           // first exemplar glyph
 const MODEL_FAINT = 198         // trace copies
 
-// Letter styles that cover Latin *and* Cyrillic (all OFL):
-//   cursive — joined курсив (Marck Script)
-//   print   — unjoined печатные буквы (Pangolin)
-//   casual  — relaxed semi-joined handwriting (Caveat)
+// Letter styles that cover Latin *and* Cyrillic (all OFL). Курсив/calligraphic
+// options first, then печатные (print) and casual.
 export const PROPISI_FONTS = [
+  { v: 'calligraphy', label: 'Каллиграфия · Calligraphy (Pacifico)', file: 'Pacifico-Regular.ttf' },
+  { v: 'handwritten', label: 'Рукописный · Handwritten (Bad Script)', file: 'BadScript-Regular.ttf' },
   { v: 'cursive', label: 'Курсив · Cursive (Marck Script)', file: 'MarckScript-Regular.ttf' },
+  { v: 'bold', label: 'Жирный курсив · Bold script (Lobster)', file: 'Lobster-Regular.ttf' },
   { v: 'print', label: 'Печатные · Print (Pangolin)', file: 'Pangolin-Regular.ttf' },
   { v: 'casual', label: 'Casual (Caveat)', file: 'Caveat-Regular.ttf' },
 ]

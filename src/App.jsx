@@ -96,7 +96,7 @@ export default function App() {
   const [practiceLines, setPracticeLines] = useState(2)
   const [pTrace, setPTrace] = useState(3)
   const [slant, setSlant] = useState(true)
-  const [pFont, setPFont] = useState('cursive')
+  const [pFont, setPFont] = useState('calligraphy')
   const [showModel, setShowModel] = useState(true)
 
   const isJp = lang === 'jp'
@@ -510,7 +510,7 @@ export default function App() {
               {lang === 'ru' ? 'Прописи' : 'Handwriting'} · four-line ruling (ascender / x-height / baseline / descender)
               with an optional slant guide{lang === 'ru' ? ' (наклонная)' : ''} for {lang === 'ru' ? 'Cyrillic' : 'Latin'} cursive &amp; print.
             </span>
-            <span>Fonts (all OFL): Marck Script (курсив), Pangolin (печатные), Caveat.</span>
+            <span>Fonts (all OFL): Pacifico, Bad Script, Marck Script, Lobster (cursive/calligraphy), Pangolin (печатные), Caveat.</span>
           </>
         )}
       </footer>
